@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "sfss-sys",
+    "leader",
+    "helper",
+    "agent",
+    "reconstruct",
+]
+resolver = "2"

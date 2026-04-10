@@ -1,0 +1,11 @@
+[package]
+name = "sfss-sys"
+version = "0.1.0"
+edition = "2021"
+links = "sfss_ffi"
+
+[build-dependencies]
+bindgen = "0.69"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }

@@ -1,0 +1,27 @@
+# Rust
+target/
+**/*.rs.bk
+Cargo.lock
+
+# Build / CMake
+build/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Generated bindings
+sfss-sys/target/
+**/bindings.rs
+
+# OS / editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Python (if dashboard uses it)
+.venv/
+
+# Logs
+*.log

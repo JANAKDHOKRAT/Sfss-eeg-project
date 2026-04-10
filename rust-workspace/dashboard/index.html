@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SFSS Secure Dashboard</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: linear-gradient(135deg, #34346c, #0ea5e9);
+      color: white;
+    }
+
+    h1 {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .card {
+      width: 250px;
+      padding: 20px;
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      background: rgba(255,255,255,0.1);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .card h2 {
+      margin: 0;
+      font-size: 18px;
+      opacity: 0.8;
+    }
+
+    .card p {
+      font-size: 28px;
+      margin-top: 10px;
+    }
+
+    .wide {
+      width: 520px;
+    }
+
+    #log {
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 14px;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>🔐 Secure Aggregation Dashboard Attention </h1>
+
+<div class="container">
+
+  <!-- Metrics -->
+  <div class="card">
+    <h2>Reports</h2>
+    <p id="count">0</p>
+  </div>
+
+  <div class="card">
+    <h2>Sum</h2>
+    <p id="sum">0</p>
+  </div>
+
+  <div class="card">
+    <h2>Average</h2>
+    <p id="avg">0</p>
+  </div>
+
+  <!-- Activity -->
+  <div class="card wide">
+    <h2>🔄 Activity</h2>
+    <div id="log"></div>
+  </div>
+
+  <!-- Security -->
+  <div class="card wide">
+    <h2>🔐 Security Status</h2>
+    <div class="status">✔ Data encrypted on client</div>
+    <div class="status">✔ Split across Leader + Helper</div>
+    <div class="status">✔ No raw data visible</div>
+    <div class="status">✔ Aggregation privacy preserved</div>
+  </div>
+
+</div>
+
+<script>
+// Activity log (safe)
+function addLog() {
+  const log = document.getElementById("log");
+  const entry = document.createElement("div");
+
+  entry.innerText = "✔ Encrypted report received";
+  log.prepend(entry);
+
+  if (log.children.length > 8) {
+    log.removeChild(log.lastChild);
+  }
+}
+let lastCount = 0;
+
+async function fetchData() {
+  try {
+    let leader = await fetch("http://127.0.0.1:8080/aggregate").then(r => r.json());
+    let helper = await fetch("http://127.0.0.1:8081/aggregate").then(r => r.json());
+
+    let total = (leader.share + helper.share) >>> 0;
+    let count = leader.count;
+    let avg = count > 0 ? total / count : 0;
+
+    document.getElementById("count").innerText = count;
+    document.getElementById("sum").innerText = total;
+    document.getElementById("avg").innerText = avg.toFixed(2);
+
+    // ✅ REAL LOG TRIGGER
+    if (count > lastCount) {
+      addLog();
+      lastCount = count;
+    }
+
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+function addLog() {
+  const log = document.getElementById("log");
+  const entry = document.createElement("div");
+
+  entry.innerText = "✔ Encrypted report received";
+  log.prepend(entry);
+
+  if (log.children.length > 8) {
+    log.removeChild(log.lastChild);
+  }
+}
+
+setInterval(fetchData, 2000);
+
+</script>
+
+</body>
+</html>
