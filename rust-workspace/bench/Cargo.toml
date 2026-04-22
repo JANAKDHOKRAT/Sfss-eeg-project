@@ -1,0 +1,23 @@
+[package]
+name = "bench"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Divvi Up's libprio-rs — real verifiable VDAF from crates.io
+prio = { version = "0.16", features = ["crypto-dependencies"] }
+
+# Your existing SFSS FFI crate — unchanged
+sfss-sys = { path = "../sfss-sys" }
+
+# EEG signal processing
+rustfft = "6"
+
+# Randomness
+rand = "0.8"
+
+# Needed by attention.rs (derives Serialize)
+serde = { version = "1", features = ["derive"] }
+
+# Parallel multi-user benchmark
+rayon = "1.10"

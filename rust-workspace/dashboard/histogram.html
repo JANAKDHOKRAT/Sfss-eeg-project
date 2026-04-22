@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SFSS Attention Histogram — Live</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #0a0e17;
+    --card: #111827;
+    --border: #1e293b;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --accent: #22d3ee;
+    --accent2: #a78bfa;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --bar1: #3b82f6;
+    --bar2: #22d3ee;
+    --bar3: #34d399;
+    --bar4: #fbbf24;
+    --bar5: #f87171;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  .container { max-width: 900px; margin: 0 auto; }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+
+  .status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 4px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+
+  .status.live { border-color: var(--green); color: var(--green); }
+  .status.waiting { border-color: var(--amber); color: var(--amber); }
+  .status.error { border-color: var(--red); color: var(--red); }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 700;
+  }
+
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .chart-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 320px;
+  }
+
+  .privacy-banner {
+    background: #1e1b4b;
+    border: 1px solid #4338ca;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .privacy-banner .icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
+
+  .privacy-banner .text {
+    font-size: 0.8rem;
+    color: #c4b5fd;
+    line-height: 1.5;
+  }
+
+  .privacy-banner .text strong { color: #e0e7ff; }
+
+  .privacy-gate {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--amber);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .privacy-gate .lock { font-size: 3rem; margin-bottom: 12px; }
+  .privacy-gate .msg { font-size: 0.9rem; }
+  .privacy-gate .sub { font-size: 0.75rem; color: var(--muted); margin-top: 8px; }
+
+  footer {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .conn-settings {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .conn-settings label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .conn-settings input {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    padding: 4px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    width: 200px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>SFSS Attention Histogram</h1>
+    <span id="status" class="status waiting">connecting...</span>
+  </header>
+
+  <div class="conn-settings">
+    <label>Reconstruct URL:</label>
+    <input id="baseUrl" type="text" value="http://127.0.0.1:8090" />
+  </div>
+
+  <div class="privacy-banner">
+    <span class="icon">🔒</span>
+    <div class="text">
+      <strong>Privacy-safe aggregation.</strong>
+      This histogram shows ONLY aggregate bin counts across all users.
+      No individual user's attention data is exposed.
+      Data is withheld when too few users are active.
+      All values are reconstructed server-side from SFSS additive shares —
+      no raw shares are transmitted to this dashboard.
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Active Users</div>
+      <div class="stat-value" id="nUsers">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Mean Attention</div>
+      <div class="stat-value" id="meanAttn">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Last Updated</div>
+      <div class="stat-value" id="lastUpdate" style="font-size:0.9rem">—</div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">Attention Distribution (5-bin histogram)</div>
+    <div class="chart-wrap">
+      <canvas id="histChart"></canvas>
+    </div>
+    <div id="privacyGate" class="privacy-gate" style="display:none">
+      <div class="lock">🔐</div>
+      <div class="msg">Waiting for more users...</div>
+      <div class="sub" id="gateMsg">Need at least N users for privacy-safe display</div>
+    </div>
+  </div>
+
+  <footer>
+    Crypto: SFSS (BGI15 DPF + SDPF streaming) · Group: Z/2^32 · DPF depth: 32<br>
+    Shares reconstructed server-side · No raw shares leave Leader/Helper<br>
+    Dashboard reads only /histogram (aggregate bin counts)
+  </footer>
+
+</div>
+
+<script>
+// ─── Chart setup ────────────────────────────────────────────────────────
+
+const LABELS = ['[0,50)', '[50,100)', '[100,150)', '[150,200)', '[200,256)'];
+const COLORS = ['#3b82f6', '#22d3ee', '#34d399', '#fbbf24', '#f87171'];
+const POLL_INTERVAL = 5000; // ms — matches reconstruct poll rate
+
+const ctx = document.getElementById('histChart').getContext('2d');
+const chart = new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: LABELS,
+    datasets: [{
+      label: 'Users in bucket',
+      data: [0, 0, 0, 0, 0],
+      backgroundColor: COLORS.map(c => c + 'cc'),
+      borderColor: COLORS,
+      borderWidth: 2,
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 600, easing: 'easeOutQuart' },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          color: '#64748b',
+          font: { family: 'JetBrains Mono', size: 11 },
+          stepSize: 1,
+          precision: 0,
+        },
+        grid: { color: '#1e293b' },
+        title: {
+          display: true,
+          text: 'Number of users',
+          color: '#64748b',
+          font: { family: 'JetBrains Mono', size: 11 },
+        }
+      },
+      x: {
+        ticks: {
+          color: '#64748b',
+          font: { family: 'JetBrains Mono', size: 11 },
+        },
+        grid: { display: false },
+        title: {
+          display: true,
+          text: 'Average attention score range',
+          color: '#64748b',
+          font: { family: 'JetBrains Mono', size: 11 },
+        }
+      }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1e293b',
+        titleFont: { family: 'JetBrains Mono' },
+        bodyFont: { family: 'JetBrains Mono' },
+        borderColor: '#334155',
+        borderWidth: 1,
+        callbacks: {
+          label: function(ctx) {
+            return ctx.parsed.y + (ctx.parsed.y === 1 ? ' user' : ' users');
+          }
+        }
+      }
+    }
+  }
+});
+
+// ─── DOM refs ───────────────────────────────────────────────────────────
+
+const $status    = document.getElementById('status');
+const $nUsers    = document.getElementById('nUsers');
+const $meanAttn  = document.getElementById('meanAttn');
+const $lastUpdate = document.getElementById('lastUpdate');
+const $chart     = document.getElementById('histChart');
+const $gate      = document.getElementById('privacyGate');
+const $gateMsg   = document.getElementById('gateMsg');
+const $baseUrl   = document.getElementById('baseUrl');
+
+// ─── Poll loop ──────────────────────────────────────────────────────────
+
+async function poll() {
+  const base = $baseUrl.value.replace(/\/+$/, '');
+  try {
+    const resp = await fetch(base + '/histogram');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+
+    if (!data.released) {
+      // Privacy gate — not enough users
+      $status.className = 'status waiting';
+      $status.textContent = 'privacy gate';
+      $nUsers.textContent = data.n_users;
+      $meanAttn.textContent = '—';
+      $lastUpdate.textContent = '—';
+      $chart.style.display = 'none';
+      $gate.style.display = 'block';
+      $gateMsg.textContent =
+        'Need at least ' + data.min_users + ' users. Currently: ' + data.n_users;
+      return;
+    }
+
+    // Data released — update chart
+    $status.className = 'status live';
+    $status.textContent = 'live · ' + data.n_users + ' users';
+    $nUsers.textContent = data.n_users;
+    $meanAttn.textContent = data.mean_attention.toFixed(1);
+
+    if (data.last_updated > 0) {
+      const d = new Date(data.last_updated * 1000);
+      $lastUpdate.textContent = d.toLocaleTimeString();
+    }
+
+    $chart.style.display = 'block';
+    $gate.style.display = 'none';
+
+    // Update chart data
+    chart.data.datasets[0].data = Array.from(data.bins);
+    chart.update('none'); // skip animation for smooth streaming feel
+
+  } catch (err) {
+    $status.className = 'status error';
+    $status.textContent = 'error: ' + err.message;
+  }
+}
+
+// Initial poll + interval
+poll();
+setInterval(poll, POLL_INTERVAL);
+</script>
+</body>
+</html>

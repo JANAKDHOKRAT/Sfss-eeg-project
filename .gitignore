@@ -1,0 +1,13 @@
+# Python
+.venv/
+.venv310/
+__pycache__/
+*.pyc
+
+# Rust
+target/
+
+# OS
+.DS_Store
+Thumbs.db
+

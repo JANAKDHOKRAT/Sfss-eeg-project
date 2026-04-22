@@ -554,7 +554,9 @@ async fn user_loop( // background task for one user
 async fn main() { // program entry point
     tracing_subscriber::fmt().with_env_filter("agent=info").init(); // initialize logging.
     info!("PPL");
+    
     sfss_sys::init(); // initialize the SFSS crypto backend
+
 
     let api_k = api_key(); // load API key
     let origin = allowed_origin(); // load allowed CORS origin

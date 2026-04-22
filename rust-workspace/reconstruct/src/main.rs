@@ -42,12 +42,24 @@ struct GlobalResult {
     n_invalid:      usize,   // users with count mismatch
     last_updated:   u64,
 }
-
 #[derive(Clone, Serialize)]
 struct AggregateResp {
     users:  HashMap<String, UserResult>,
     global: GlobalResult,
 }
+#[derive(Clone, Serialize)]
+struct HistogramResp {
+    bins:           [u64; 5],
+    labels:         [&'static str; 5],
+    n_users:        usize,
+    released:       bool,
+    min_users:      usize,
+    last_updated:   u64,
+    mean_attention: f64,
+}
+
+const MIN_USERS_FOR_HISTOGRAM: usize = 1;
+// Set to 1 for testing. For production privacy, use 5+.
 
 struct ReconstructState {
     latest:  AggregateResp,
@@ -206,7 +218,47 @@ async fn handle_remove(
     info!("[R] Removed uid={}", req.user_id);
     (StatusCode::OK, Json(serde_json::json!({"status":"removed","user_id":req.user_id})))
 }
+async fn handle_histogram(State(s): State<SharedState>) -> Json<HistogramResp> {
+    let state = s.lock().unwrap();
+    let now = state.latest.global.last_updated;
 
+    let valid_users: Vec<f64> = state.latest.users.values()
+        .filter(|u| u.valid && u.count > 0)
+        .map(|u| u.avg)
+        .collect();
+
+    let n = valid_users.len();
+
+    if n < MIN_USERS_FOR_HISTOGRAM {
+        return Json(HistogramResp {
+            bins: [0; 5],
+            labels: ["[0,50)", "[50,100)", "[100,150)", "[150,200)", "[200,256)"],
+            n_users: n, released: false,
+            min_users: MIN_USERS_FOR_HISTOGRAM,
+            last_updated: now, mean_attention: 0.0,
+        });
+    }
+
+    let mut bins = [0u64; 5];
+    for avg in &valid_users {
+        let bucket = if *avg < 50.0 { 0 }
+            else if *avg < 100.0 { 1 }
+            else if *avg < 150.0 { 2 }
+            else if *avg < 200.0 { 3 }
+            else { 4 };
+        bins[bucket] += 1;
+    }
+
+    let mean = valid_users.iter().sum::<f64>() / n as f64;
+
+    Json(HistogramResp {
+        bins,
+        labels: ["[0,50)", "[50,100)", "[100,150)", "[150,200)", "[200,256)"],
+        n_users: n, released: true,
+        min_users: MIN_USERS_FOR_HISTOGRAM,
+        last_updated: now, mean_attention: mean,
+    })
+}
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 #[tokio::main]
@@ -219,6 +271,7 @@ async fn main() {
     tokio::spawn(async move { poll_loop(ps, pc).await; });
     let app = Router::new()
         .route("/aggregate",   get(handle_aggregate))
+         .route("/histogram",   get(handle_histogram))   // ← ADD THIS
         .route("/user/remove", post(handle_remove))
         .layer(CorsLayer::permissive())
         .with_state(state);

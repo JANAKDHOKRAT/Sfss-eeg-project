@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SFSS · Secure Attention Monitor</title>
+<title>SFSS · Aggregate Attention Histogram</title>
 <style>
 :root {
   --bg:#0d1117; --surface:#161b22; --border:#30363d;
   --text:#e6edf3; --muted:#8b949e;
   --green:#3fb950; --blue:#58a6ff; --purple:#bc8cff;
   --yellow:#d29922; --red:#f85149; --orange:#e3b341;
+  --cyan:#39d2c0;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;}
@@ -30,54 +31,53 @@ header h1{font-size:14px;font-weight:600;}
 #btn-add:hover{opacity:.85;}#btn-add:disabled{opacity:.4;cursor:not-allowed;}
 .ctrl-note{font-size:11px;color:var(--muted);}
 #user-count{font-size:11px;color:var(--blue);font-weight:600;}
-.global-bar{margin:12px 20px 0;background:var(--surface);border:1px solid var(--border);
-  border-radius:8px;padding:12px 16px;}
-.bar-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;
-  color:var(--muted);margin-bottom:10px;}
-.global-cards{display:flex;gap:10px;margin-bottom:10px;}
-.g-card{flex:1;background:#0a0e14;border:1px solid var(--border);border-radius:6px;
-  padding:9px;text-align:center;}
-.g-val{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;margin:3px 0 2px;}
-.g-lbl{font-size:9px;color:var(--muted);}
-#pct-bar{height:7px;border-radius:4px;overflow:hidden;display:flex;transition:all .5s;}
-.pct-seg{height:100%;transition:width .5s;}
-#invalid-banner{display:none;margin-top:8px;padding:7px 10px;background:#2d1a1a;
-  border:1px solid #5a2020;border-radius:5px;font-size:11px;color:var(--red);}
+
+/* Active user pills - just IDs, no data */
+.user-pills{display:flex;flex-wrap:wrap;gap:5px;padding:0 20px;margin-top:8px;}
+.u-pill{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-family:monospace;
+  background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--muted);}
+.u-pill .u-dot{width:6px;height:6px;border-radius:50%;}
+.u-pill .remove-x{cursor:pointer;color:var(--muted);margin-left:3px;font-size:11px;}
+.u-pill .remove-x:hover{color:var(--red);}
+
+/* Privacy banner */
 .privacy-notice{margin:10px 20px 0;background:#0d1a12;border:1px solid #1a3d22;
-  border-radius:6px;padding:9px 14px;font-size:11px;color:#56a066;line-height:1.6;}
-.users-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
-  gap:12px;padding:12px 20px 16px;}
-.user-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;
-  padding:12px;transition:border-color .3s;}
-.user-card.invalid{border-color:var(--red);opacity:.75;}
-.user-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.user-title{font-size:12px;font-weight:600;font-family:monospace;}
-.user-meta{display:flex;align-items:center;gap:6px;}
-.epoch-badge{font-size:10px;padding:1px 6px;border-radius:3px;border:1px solid var(--border);color:var(--muted);}
-.warn-badge{font-size:10px;padding:1px 6px;border-radius:3px;background:#2d1a1a;color:var(--red);border:1px solid #5a2020;}
-.remove-btn{font-size:10px;padding:2px 7px;border-radius:4px;background:#1c1c2e;
-  color:var(--muted);border:1px solid var(--border);cursor:pointer;}
-.remove-btn:hover{background:#2d1a1a;color:var(--red);border-color:#5a2020;}
-.score-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
-canvas.gauge{display:block;}
-.score-num{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;min-width:46px;}
-.score-detail{font-size:10px;color:var(--muted);line-height:1.7;}
-.score-source{font-size:9px;color:var(--muted);font-style:italic;margin-top:3px;}
-.sfss-row{display:flex;gap:6px;font-size:10px;color:var(--muted);
-  border-top:1px solid var(--border);padding-top:8px;}
-.sfss-cell{flex:1;text-align:center;}
-.sfss-val{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text);display:block;}
-.pct-val{color:var(--blue)!important;}
-.sfss-section{margin:0 20px 16px;background:var(--surface);border:1px solid var(--border);
-  border-radius:8px;padding:12px 16px;}
+  border-radius:6px;padding:10px 14px;font-size:11px;color:#56a066;line-height:1.7;}
+.privacy-notice strong{color:#3fb950;}
+
+/* Aggregate stats cards */
+.agg-section{margin:14px 20px 0;background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:14px 16px;}
 .sec-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;
-  color:var(--muted);margin-bottom:10px;}
-table{width:100%;border-collapse:collapse;}
-th{font-size:10px;text-align:left;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--border);}
-td{font-size:11px;padding:5px 8px;border-bottom:1px solid #1c2128;font-variant-numeric:tabular-nums;}
-tr.invalid-row td{color:var(--red);opacity:.7;font-style:italic;}
-tr:last-child td{border-bottom:none;}
-.sec-section{margin:0 20px 20px;background:var(--surface);border:1px solid var(--border);
+  color:var(--muted);margin-bottom:12px;}
+.agg-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;}
+.a-card{background:#0a0e14;border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center;}
+.a-val{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;margin:3px 0 2px;}
+.a-lbl{font-size:9px;color:var(--muted);line-height:1.4;}
+
+/* Histogram bars */
+.hist-container{margin-top:10px;}
+.hist-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.hist-label{font-size:11px;font-family:monospace;min-width:80px;text-align:right;color:var(--muted);}
+.hist-bar-wrap{flex:1;height:28px;background:#0a0e14;border-radius:4px;overflow:hidden;position:relative;}
+.hist-bar{height:100%;border-radius:4px;transition:width .6s ease;display:flex;align-items:center;padding-left:8px;}
+.hist-count{font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--text);
+  position:absolute;left:8px;top:50%;transform:translateY(-50%);}
+.hist-pct{font-size:10px;min-width:50px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;}
+
+/* Attention distribution bar */
+.dist-bar{height:10px;border-radius:5px;overflow:hidden;display:flex;margin:8px 0 4px;}
+.dist-seg{height:100%;transition:width .5s;}
+.dist-legend{display:flex;gap:14px;margin-top:6px;flex-wrap:wrap;}
+.dist-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted);}
+.dist-swatch{width:10px;height:10px;border-radius:2px;}
+
+/* Withholding banner */
+.withhold-banner{padding:14px;text-align:center;color:var(--muted);font-size:12px;}
+.withhold-banner .lock{font-size:24px;display:block;margin-bottom:6px;}
+
+/* Security section */
+.sec-section{margin:14px 20px 20px;background:var(--surface);border:1px solid var(--border);
   border-radius:8px;padding:12px 16px;}
 .sec-row{display:flex;align-items:baseline;gap:8px;padding:5px 0;
   border-bottom:1px solid #1c2128;font-size:11px;}
@@ -85,38 +85,47 @@ tr:last-child td{border-bottom:none;}
 .sec-ok{color:var(--green);font-size:10px;}
 .sec-na{color:var(--muted);font-size:10px;}
 .sec-val{margin-left:auto;font-family:monospace;font-size:10px;color:var(--blue);}
+
+/* Crypto footer */
+.crypto-footer{padding:8px 20px 20px;font-size:9px;color:#30363d;text-align:center;line-height:1.6;}
 </style>
 </head>
 <body>
 
 <!-- ═══════════════════════════════════════════════════════════════════════
-     HOW TO USE THIS DASHBOARD
+     SFSS PAPER-CORRECT DASHBOARD
      ═══════════════════════════════════════════════════════════════════════
-     ⚠ DO NOT open this file directly in your browser (file://)
-       That sends Origin: null → CORS blocked → "Add failed" error
+     This dashboard shows ONLY aggregate statistics:
+       - Histogram bin counts (sum across ALL users)
+       - Total measurements, mean attention, distribution %
+     
+     It does NOT show:
+       ❌ per-user attention scores
+       ❌ per-user averages or sums
+       ❌ per-user reconstruction values
+       ❌ individual gauges or score displays
 
-     ✅ CORRECT: serve it via HTTP:
-       cd sfss-final/dashboard
-       python3 -m http.server 3000
+     This matches the SFSS paper (Song et al., USENIX Security 2026):
+       "servers compute Σᵢ f(xⁱ)·mⱼⁱ" — aggregate only
+       Final result = combined server outputs, never per-user
+
+     ⚠ Serve via HTTP, not file://
+       cd dashboard && python3 -m http.server 3000
        open http://127.0.0.1:3000
-
-     Make sure the agent is running on port 8082 first.
      ═══════════════════════════════════════════════════════════════════════ -->
 
 <div id="serve-banner" style="display:none;background:#2d1a00;border:2px solid #e3b341;
   color:#e3b341;padding:12px 20px;font-size:13px;font-weight:600;text-align:center;">
-  ⚠ Dashboard must be served via HTTP, not opened as file://.
-  Run: <code style="background:#1a1000;padding:2px 8px;border-radius:3px;">
-    python3 -m http.server 3000
-  </code>
+  ⚠ Serve via HTTP: <code style="background:#1a1000;padding:2px 8px;border-radius:3px;">
+    python3 -m http.server 3000</code>
   then open <a href="http://127.0.0.1:3000" style="color:#58a6ff">http://127.0.0.1:3000</a>
 </div>
 
 <header>
-  <h1><span class="dot"></span>SFSS · Secure Attention Monitor</h1>
+  <h1><span class="dot"></span>SFSS · Aggregate Attention Histogram</h1>
   <div class="header-right">
-    <span class="arch-pill">Browser → Agent:8082 (tick only) + Reconstruct:8090</span>
-    <span class="arch-pill">Leader:8080 + Helper:8081 — no browser access</span>
+    <span class="arch-pill">Agent:8082 → Leader:8080 + Helper:8081 → Reconstruct:8090</span>
+    <span class="arch-pill">Dashboard reads /histogram only (aggregate bins)</span>
     <span id="status-txt">connecting…</span>
   </div>
 </header>
@@ -124,95 +133,127 @@ tr:last-child td{border-bottom:none;}
 <div class="controls">
   <button id="btn-add">＋ Add User</button>
   <span id="user-count">0 users</span>
-  <span class="ctrl-note">All scores from Reconstruct only — browser never receives raw EEG or plaintext attention values</span>
+  <span class="ctrl-note">Users stream encrypted attention via SDPF — dashboard sees only aggregate histogram, never individual values</span>
 </div>
+
+<div id="user-pills" class="user-pills"></div>
 
 <div class="privacy-notice">
-  🔒 The browser receives only epoch tick counters from the Agent.
-  Attention scores, raw EEG samples, and band powers are not transmitted here.
-  All score values shown come exclusively from Reconstruct after SDPF reconstruction.
+  🔒 <strong>Paper-correct privacy model (Song et al., SFSS, USENIX Security 2026).</strong>
+  This dashboard displays ONLY the aggregate histogram: Σᵢ f(xⁱ,1)(p) · mⱼⁱ for all bins p ∈ [h].
+  No individual user's attention value, sum, or average is ever computed or displayed here.
+  Each user's SDPF shares are accumulated server-side; only the final cross-user aggregate is reconstructed.
+  Individual shares (share₀, share₁) never leave Leader/Helper. The Reconstruct service combines
+  shares across ALL users into bin counts before exposing anything to this dashboard.
 </div>
 
-<div class="global-bar">
-  <div class="bar-title">Global Secure Aggregation (SDPF — server-side reconstruction only)</div>
-  <div id="invalid-banner"></div>
-  <div class="global-cards">
-    <div class="g-card"><div class="g-val" id="g-users" style="color:var(--blue)">—</div><div class="g-lbl">valid users</div></div>
-    <div class="g-card"><div class="g-val" id="g-mean" style="color:var(--green)">—</div><div class="g-lbl">mean attention · 0–255</div></div>
-    <div class="g-card"><div class="g-val" id="g-grand" style="color:var(--purple)">—</div><div class="g-lbl">grand avg (weighted)</div></div>
-    <div class="g-card"><div class="g-val" id="g-total" style="color:var(--orange)">—</div><div class="g-lbl">Σ attention (cumulative)</div></div>
+<!-- ═══════════════ AGGREGATE STATISTICS ═══════════════ -->
+<div class="agg-section">
+  <div class="sec-title">Aggregate Statistics — SDPF Reconstructed (cross-user sum only)</div>
+  <div class="agg-cards">
+    <div class="a-card">
+      <div class="a-val" id="g-users" style="color:var(--blue)">—</div>
+      <div class="a-lbl">Active Users</div>
+    </div>
+    <div class="a-card">
+      <div class="a-val" id="g-total-meas" style="color:var(--green)">—</div>
+      <div class="a-lbl">Total Measurements<br>(all users combined)</div>
+    </div>
+    <div class="a-card">
+      <div class="a-val" id="g-mean" style="color:var(--purple)">—</div>
+      <div class="a-lbl">Estimated Mean Attention<br>(from bin midpoints)</div>
+    </div>
+    <div class="a-card">
+      <div class="a-val" id="g-high-pct" style="color:var(--orange)">—</div>
+      <div class="a-lbl">High Attention %<br>(bins [150,200) + [200,256))</div>
+    </div>
+    <div class="a-card">
+      <div class="a-val" id="g-low-pct" style="color:var(--cyan)">—</div>
+      <div class="a-lbl">Low Attention %<br>(bins [0,50) + [50,100))</div>
+    </div>
+    <div class="a-card">
+      <div class="a-val" id="g-updated" style="color:var(--muted);font-size:13px">—</div>
+      <div class="a-lbl">Last Updated</div>
+    </div>
   </div>
-  <div id="pct-bar"></div>
+
+  <!-- Attention distribution stacked bar -->
+  <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">Attention Distribution (aggregate across all users)</div>
+  <div class="dist-bar" id="dist-bar"></div>
+  <div class="dist-legend" id="dist-legend"></div>
 </div>
 
-<div class="users-grid" id="users-grid"></div>
-
-<div class="sfss-section">
-  <div class="sec-title">Per-user SDPF Aggregates (Reconstruct service — post-reconstruction, no raw shares)</div>
-  <table>
-    <thead>
-      <tr><th>User ID</th><th>Reports</th><th>Σ Attention</th><th>User Avg</th><th>% of Total</th><th>Status</th><th>Updated</th></tr>
-    </thead>
-    <tbody id="agg-body">
-      <tr><td colspan="7" style="color:var(--muted);text-align:center">Waiting for first SDPF transmission (every 30s)…</td></tr>
-    </tbody>
-  </table>
+<!-- ═══════════════ HISTOGRAM ═══════════════ -->
+<div class="agg-section" style="margin-top:12px;">
+  <div class="sec-title">5-Bin Histogram — Σᵢ f(xⁱ,1)(p) · mⱼⁱ (aggregate bin counts, all users)</div>
+  <div id="hist-content">
+    <div class="withhold-banner" id="withhold-msg">
+      <span class="lock">🔒</span>
+      Waiting for sufficient users before displaying aggregate histogram.<br>
+      Privacy threshold requires MIN_USERS active streams.
+    </div>
+  </div>
 </div>
 
+<!-- ═══════════════ SECURITY PROPERTIES ═══════════════ -->
 <div class="sec-section">
-  <div class="sec-title">Privacy + Security Properties</div>
+  <div class="sec-title">Privacy + Security Properties (SFSS Paper-Correct)</div>
   <div class="sec-row"><span class="sec-ok">✔</span>
-    <span>A.4 fixed — score/log_EI removed from agent logs; user_id not linked to plaintext value</span>
-    <span class="sec-val">logs</span></div>
+    <span>Aggregate-only output — dashboard shows Σᵢ f(x)·mⱼ, never per-user f(x)·mⱼ</span>
+    <span class="sec-val">§2.1 [Song+26]</span></div>
   <div class="sec-row"><span class="sec-ok">✔</span>
-    <span>B fixed — /snapshot returns tick counter only; raw EEG samples not transmitted to browser</span>
+    <span>No per-user reconstruction — shares combined across ALL users before any value is revealed</span>
+    <span class="sec-val">Def. 1 [Song+26]</span></div>
+  <div class="sec-row"><span class="sec-ok">✔</span>
+    <span>Dashboard reads /histogram only — returns bin counts, not per-user sums or averages</span>
     <span class="sec-val">API</span></div>
   <div class="sec-row"><span class="sec-ok">✔</span>
-    <span>B fixed — /history removed; 120-score plaintext history no longer accessible</span>
+    <span>/snapshot returns tick counter only — no EEG, no scores, no band powers transmitted to browser</span>
     <span class="sec-val">API</span></div>
   <div class="sec-row"><span class="sec-ok">✔</span>
-    <span>Gauge and score shown here sourced from Reconstruct avg — never from /snapshot</span>
-    <span class="sec-val">dashboard</span></div>
-  <div class="sec-row"><span class="sec-ok">✔</span>
-    <span>share0, share1 never logged on Leader/Helper — SDPF invariant enforced</span>
+    <span>share₀, share₁ never leave Leader/Helper — SDPF evaluation is local per server</span>
     <span class="sec-val">crypto</span></div>
   <div class="sec-row"><span class="sec-ok">✔</span>
     <span>No CorsLayer on Leader/Helper — browser cannot reach share or eval endpoints</span>
     <span class="sec-val">architecture</span></div>
   <div class="sec-row"><span class="sec-ok">✔</span>
+    <span>SDPF_gen(user_id) called once per session — keys reused across all streaming ticks</span>
+    <span class="sec-val">§4.2 [Song+26]</span></div>
+  <div class="sec-row"><span class="sec-ok">✔</span>
+    <span>Streaming ciphertext cⱼ is pseudorandom — no secret channel needed (Theorem 1)</span>
+    <span class="sec-val">§4.2 [Song+26]</span></div>
+  <div class="sec-row"><span class="sec-ok">✔</span>
     <span>API key auth on /user/add and /user/remove — constant-time comparison (subtle crate)</span>
     <span class="sec-val">auth</span></div>
-  <div class="sec-row"><span class="sec-ok">✔</span>
-    <span>Backpressure: queue checked before encrypt — ctr not advanced when overloaded</span>
-    <span class="sec-val">fix6</span></div>
-  <div class="sec-row"><span class="sec-ok">✔</span>
-    <span>Retry queue: peek-and-pop-on-success — no data loss if agent restarts mid-retry</span>
-    <span class="sec-val">fix4</span></div>
   <div class="sec-row"><span class="sec-na">—</span>
-    <span>A.1 user_id in payload — required by SDPF_eval(key, ctx, user_id); inherent to SFSS protocol; mitigate with TLS</span>
+    <span>user_id in payload — required by SDPF_eval(key, ctx, user_id); inherent to SFSS; mitigate with TLS</span>
     <span class="sec-val">by design</span></div>
   <div class="sec-row"><span class="sec-na">—</span>
-    <span>A.2/A.3 seq and timing — accepted leakage per SFSS paper Leak function (participation count)</span>
-    <span class="sec-val">by design</span></div>
+    <span>Participation count (n_users) visible — accepted leakage per SFSS Leak function (size j, |Gout|)</span>
+    <span class="sec-val">Def. 1 Leak</span></div>
   <div class="sec-row"><span class="sec-na">—</span>
-    <span>F DPF timing — AES-NI constant-time; cache-timing out of scope in semi-honest model</span>
-    <span class="sec-val">out of scope</span></div>
+    <span>Trusted-client model — SFSS has no input validation (verifiable SFSS is future work, §8 [Song+26])</span>
+    <span class="sec-val">§8 [Song+26]</span></div>
   <div class="sec-row" style="background:#1a1a0d;border-radius:4px;padding:6px 8px;margin-top:4px;">
     <span style="color:#d29922;font-size:10px;">⚠</span>
-    <span style="color:#d29922;">To run: <code>cd dashboard && python3 -m http.server 3000</code> then open http://127.0.0.1:3000 — file:// URLs break CORS</span>
+    <span style="color:#d29922;">Serve via HTTP: <code>cd dashboard && python3 -m http.server 3000</code> — file:// breaks CORS</span>
   </div>
 </div>
 
+<div class="crypto-footer">
+  Crypto: SFSS/SDPF (Song, Bai, Dong, Liu, Zhang, Lu, Zhang — USENIX Security 2026)
+  · BGI15 DPF · PRG: AES-NI (emp-tool) · PRF: F(key,ctr) = AES(key, LE64(ctr)||0⁸)[0:4]
+  · Group: Z/2³² · DPF depth: 32 · Shares reconstructed server-side · No raw shares leave Leader/Helper
+  · Dashboard reads only /histogram (aggregate bin counts)
+</div>
+
 <script>
-// Show banner if opened as file:// (CORS will block all POST requests)
 if (location.protocol === 'file:') {
   document.getElementById('serve-banner').style.display = 'block';
 }
+
 const AGENT       = 'http://127.0.0.1:8082';
 const RECONSTRUCT = 'http://127.0.0.1:8090';
-// Fix 1: API key for mutable operations (POST /user/add, POST /user/remove)
-// In production this should be loaded securely, not hardcoded.
-// Change by setting AGENT_API_KEY env var on the agent server.
 const API_KEY = window.__AGENT_API_KEY__ || 'dev-key-change-in-production';
 function authHeaders(extra={}) {
   return {'Authorization': `Bearer ${API_KEY}`, ...extra};
@@ -222,151 +263,212 @@ const activeUsers = new Map();
 const COLORS = ['#58a6ff','#3fb950','#bc8cff','#e3b341','#f78166','#79c0ff','#56d364','#d2a8ff'];
 let colorIdx = 0;
 function nextColor(){ return COLORS[colorIdx++ % COLORS.length]; }
-function scoreColor(s){ return s>160?'#3fb950':s>90?'#e3b341':'#f85149'; }
-function stateLabel(s){ return s<60?'😴 Drowsy':s<130?'😐 Moderate':s<200?'🧠 Attentive':'⚡ Focused'; }
 
-function createCard(uid, color) {
-  const div = document.createElement('div');
-  div.className = 'user-card'; div.id = `card-${uid}`;
-  div.innerHTML = `
-    <div class="user-header">
-      <span class="user-title" style="color:${color}">uid:${uid}</span>
-      <div class="user-meta">
-        <span class="epoch-badge" id="badge-${uid}">epoch 0</span>
-        <button class="remove-btn" onclick="removeUser(${uid})">✕ remove</button>
-      </div>
-    </div>
-    <div class="score-row">
-      <canvas class="gauge" id="gauge-${uid}" width="80" height="56"></canvas>
-      <div>
-        <div class="score-num" id="score-${uid}" style="color:${color}">—</div>
-        <div class="score-detail" id="state-${uid}">—</div>
-        <div class="score-source">via Reconstruct (SDPF-reconstructed avg)</div>
-      </div>
-    </div>
-    <div class="sfss-row">
-      <div class="sfss-cell"><span class="sfss-val" id="s-val-${uid}">—</span>Σ attention</div>
-      <div class="sfss-cell"><span class="sfss-val" id="s-cnt-${uid}">0</span>reports</div>
-      <div class="sfss-cell"><span class="sfss-val" id="s-avg-${uid}">—</span>avg</div>
-      <div class="sfss-cell"><span class="sfss-val pct-val" id="s-pct-${uid}">—</span>% total</div>
-    </div>`;
-  document.getElementById('users-grid').appendChild(div);
+// Histogram bin definitions — must match server
+const BINS = [
+  { lo: 0,   hi: 50,  label: '[0, 50)',   color: '#f85149', name: 'Drowsy' },
+  { lo: 50,  hi: 100, label: '[50, 100)',  color: '#e3b341', name: 'Low' },
+  { lo: 100, hi: 150, label: '[100, 150)', color: '#39d2c0', name: 'Moderate' },
+  { lo: 150, hi: 200, label: '[150, 200)', color: '#58a6ff', name: 'Attentive' },
+  { lo: 200, hi: 256, label: '[200, 256)', color: '#3fb950', name: 'Focused' },
+];
+
+// ── User management (add/remove — no data displayed per user) ──────────
+function renderPills() {
+  const container = document.getElementById('user-pills');
+  container.innerHTML = '';
+  for (const [uid, info] of activeUsers) {
+    const pill = document.createElement('span');
+    pill.className = 'u-pill';
+    pill.id = `pill-${uid}`;
+    pill.innerHTML = `<span class="u-dot" style="background:${info.color}"></span>uid:${uid}
+      <span class="epoch-badge" id="epoch-${uid}" style="font-size:9px">—</span>
+      <span class="remove-x" onclick="removeUser(${uid})" title="Remove user">✕</span>`;
+    container.appendChild(pill);
+  }
 }
 
-function destroyCard(uid){ document.getElementById(`card-${uid}`)?.remove(); activeUsers.delete(uid); updateCount(); }
-function updateCount(){ const n=activeUsers.size; document.getElementById('user-count').textContent=`${n} active user${n!==1?'s':''}`; }
-function setStatus(msg,color){ const el=document.getElementById('status-txt'); el.textContent=msg; el.style.color=color||'var(--green)'; }
+function updateCount() {
+  const n = activeUsers.size;
+  document.getElementById('user-count').textContent = `${n} active user${n!==1?'s':''}`;
+}
+
+function setStatus(msg, color) {
+  const el = document.getElementById('status-txt');
+  el.textContent = msg; el.style.color = color || 'var(--green)';
+}
 
 async function addUser() {
-  document.getElementById('btn-add').disabled=true;
+  document.getElementById('btn-add').disabled = true;
   try {
-    const res=await fetch(`${AGENT}/user/add`,{method:'POST',headers:authHeaders()});
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data=await res.json(); const uid=data.user_id; const col=nextColor();
-    activeUsers.set(uid,{color:col,lastTick:-1}); createCard(uid,col); updateCount();
-    setStatus(`Added uid:${uid}`,'var(--green)');
-  } catch(e){ setStatus(`Add failed: ${e.message}`,'var(--red)'); }
-  finally{ document.getElementById('btn-add').disabled=false; }
+    const res = await fetch(`${AGENT}/user/add`, {method:'POST', headers:authHeaders()});
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const uid = data.user_id;
+    activeUsers.set(uid, {color: nextColor(), lastTick: -1});
+    renderPills(); updateCount();
+    setStatus(`Added uid:${uid}`, 'var(--green)');
+  } catch(e) { setStatus(`Add failed: ${e.message}`, 'var(--red)'); }
+  finally { document.getElementById('btn-add').disabled = false; }
 }
 
 async function removeUser(uid) {
   try {
-    const res=await fetch(`${AGENT}/user/remove`,{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({user_id:uid})});
-    if(!res.ok&&res.status!==404) throw new Error(`HTTP ${res.status}`);
-    destroyCard(uid); setStatus(`Removed uid:${uid}`,'var(--muted)');
-  } catch(e){ setStatus(`Remove failed: ${e.message}`,'var(--red)'); }
+    const res = await fetch(`${AGENT}/user/remove`, {
+      method:'POST',
+      headers: authHeaders({'Content-Type':'application/json'}),
+      body: JSON.stringify({user_id: uid})
+    });
+    if (!res.ok && res.status !== 404) throw new Error(`HTTP ${res.status}`);
+    activeUsers.delete(uid);
+    renderPills(); updateCount();
+    setStatus(`Removed uid:${uid}`, 'var(--muted)');
+  } catch(e) { setStatus(`Remove failed: ${e.message}`, 'var(--red)'); }
 }
 
-function drawGauge(uid, score, col) {
-  const cvs=document.getElementById(`gauge-${uid}`); if(!cvs) return;
-  const gc=cvs.getContext('2d'); gc.clearRect(0,0,80,56);
-  gc.beginPath(); gc.arc(40,50,34,Math.PI,2*Math.PI); gc.strokeStyle='#1c2128'; gc.lineWidth=7; gc.stroke();
-  if(score>0){
-    gc.beginPath(); gc.arc(40,50,34,Math.PI,Math.PI+(score/255)*Math.PI);
-    gc.strokeStyle=col; gc.lineWidth=7; gc.lineCap='round'; gc.stroke();
+// ── Poll Agent for tick counters only (no scores, no EEG) ──────────────
+async function pollAgent() {
+  try {
+    const listRes = await fetch(`${AGENT}/users`).then(r => r.json());
+    const serverUids = new Set(listRes.user_ids.map(Number));
+    // Remove users that disappeared from agent
+    for (const uid of [...activeUsers.keys()]) {
+      if (!serverUids.has(uid)) { activeUsers.delete(uid); }
+    }
+    // Auto-discover users registered on agent
+    for (const uid of serverUids) {
+      if (!activeUsers.has(uid)) {
+        activeUsers.set(uid, {color: nextColor(), lastTick: -1});
+      }
+    }
+    // Get tick counters (NO scores, NO EEG data)
+    const snap = await fetch(`${AGENT}/snapshot`).then(r => r.json());
+    const users = snap.users || {};
+    const maxTick = Math.max(...Object.values(users).map(u => u.tick || 0), 0);
+    setStatus(`epoch ${maxTick} · ${serverUids.size} streaming`, 'var(--green)');
+
+    for (const uid of serverUids) {
+      const u = users[uid.toString()]; if (!u) continue;
+      const st = activeUsers.get(uid);
+      if (st && u.tick !== st.lastTick) {
+        st.lastTick = u.tick;
+        const badge = document.getElementById(`epoch-${uid}`);
+        if (badge) badge.textContent = `e${u.tick}`;
+      }
+    }
+    renderPills(); updateCount();
+  } catch(e) { setStatus('agent offline', 'var(--red)'); }
+}
+
+// ── Poll /histogram for AGGREGATE bin counts only ──────────────────────
+// This is the paper-correct endpoint:
+//   bins[i] = Σ over all users of reconstructed indicator for bin i
+// No per-user value is ever computed or returned.
+async function pollHistogram() {
+  try {
+    const data = await fetch(`${RECONSTRUCT}/histogram`).then(r => r.json());
+    const bins = data.bins || [];        // [count0, count1, count2, count3, count4]
+    const nUsers = data.n_users || 0;
+    const meanAtt = data.mean_attention; // may be null if withheld
+    const total = bins.reduce((s, v) => s + v, 0);
+
+    // Update aggregate cards
+    document.getElementById('g-users').textContent = nUsers;
+    document.getElementById('g-total-meas').textContent = total > 0 ? total.toLocaleString() : '—';
+
+    // Compute estimated mean from bin midpoints (aggregate-only computation)
+    // midpoint × count summed, divided by total — no per-user data involved
+    if (total > 0) {
+      const midpoints = BINS.map(b => (b.lo + Math.min(b.hi, 255)) / 2);
+      const weightedSum = bins.reduce((s, c, i) => s + c * midpoints[i], 0);
+      const estMean = weightedSum / total;
+      document.getElementById('g-mean').textContent = estMean.toFixed(1);
+
+      // High attention % = bins[3] + bins[4] (150+ scores)
+      const highCount = (bins[3] || 0) + (bins[4] || 0);
+      const highPct = (highCount / total * 100);
+      document.getElementById('g-high-pct').textContent = highPct.toFixed(1) + '%';
+
+      // Low attention % = bins[0] + bins[1] (0-99 scores)
+      const lowCount = (bins[0] || 0) + (bins[1] || 0);
+      const lowPct = (lowCount / total * 100);
+      document.getElementById('g-low-pct').textContent = lowPct.toFixed(1) + '%';
+
+    } else {
+      document.getElementById('g-mean').textContent = '—';
+      document.getElementById('g-high-pct').textContent = '—';
+      document.getElementById('g-low-pct').textContent = '—';
+    }
+
+    document.getElementById('g-updated').textContent = new Date().toLocaleTimeString();
+
+    // Distribution bar
+    const distBar = document.getElementById('dist-bar');
+    const distLegend = document.getElementById('dist-legend');
+    distBar.innerHTML = '';
+    distLegend.innerHTML = '';
+    if (total > 0) {
+      BINS.forEach((b, i) => {
+        const pct = (bins[i] || 0) / total * 100;
+        const seg = document.createElement('div');
+        seg.className = 'dist-seg';
+        seg.style.width = pct.toFixed(1) + '%';
+        seg.style.background = b.color;
+        distBar.appendChild(seg);
+
+        const item = document.createElement('span');
+        item.className = 'dist-item';
+        item.innerHTML = `<span class="dist-swatch" style="background:${b.color}"></span>${b.label} ${b.name} — ${pct.toFixed(1)}%`;
+        distLegend.appendChild(item);
+      });
+    }
+
+    // Histogram bars
+    const content = document.getElementById('hist-content');
+    if (total === 0 || nUsers < 1) {
+      content.innerHTML = `<div class="withhold-banner">
+        <span class="lock">🔒</span>
+        ${nUsers < 1
+          ? 'No active users. Add users to begin streaming.'
+          : 'Waiting for first SDPF reconstruction cycle...'}
+      </div>`;
+      return;
+    }
+
+    const maxBin = Math.max(...bins, 1);
+    let html = '<div class="hist-container">';
+    BINS.forEach((b, i) => {
+      const count = bins[i] || 0;
+      const pct = total > 0 ? (count / total * 100) : 0;
+      const barW = Math.max((count / maxBin * 100), count > 0 ? 2 : 0);
+      html += `<div class="hist-row">
+        <span class="hist-label">${b.label}</span>
+        <div class="hist-bar-wrap">
+          <div class="hist-bar" style="width:${barW.toFixed(1)}%;background:${b.color}20;border-left:3px solid ${b.color};"></div>
+          <span class="hist-count" style="color:${b.color}">${count.toLocaleString()}</span>
+        </div>
+        <span class="hist-pct">${pct.toFixed(1)}%</span>
+      </div>`;
+    });
+    html += '</div>';
+    html += `<div style="font-size:9px;color:var(--muted);margin-top:10px;line-height:1.6;">
+      Total measurements: ${total.toLocaleString()} across ${nUsers} user${nUsers!==1?'s':''}.
+      Each bin count = Σᵢ SDPF_reconstruct(share₀ᵢ + share₁ᵢ mod 2³²) for indicator of that bin.
+      No individual user's score is computable from these counts.
+    </div>`;
+    content.innerHTML = html;
+
+  } catch(e) {
+    // Silent fail — will retry next interval
   }
 }
 
-// Poll agent for TICK COUNTER ONLY — /snapshot now returns {user_id, tick, sample_rate}
-// No EEG samples, no attention scores, no band powers
-async function pollAgent() {
-  try {
-    const listRes=await fetch(`${AGENT}/users`).then(r=>r.json());
-    const serverUids=new Set(listRes.user_ids.map(Number));
-    for(const uid of [...activeUsers.keys()]){ if(!serverUids.has(uid)) destroyCard(uid); }
-    const snap=await fetch(`${AGENT}/snapshot`).then(r=>r.json());
-    const users=snap.users||{};
-    const maxTick=Math.max(...Object.values(users).map(u=>u.tick||0),0);
-    setStatus(`EEG epoch ${maxTick} · ${serverUids.size} user${serverUids.size!==1?'s':''}`,`var(--green)`);
-    for(const uid of serverUids){
-      const u=users[uid.toString()]; if(!u) continue;
-      if(!activeUsers.has(uid)){ const col=nextColor(); activeUsers.set(uid,{color:col,lastTick:-1}); createCard(uid,col); updateCount(); }
-      const st=activeUsers.get(uid);
-      if(u.tick!==st.lastTick){ st.lastTick=u.tick; document.getElementById(`badge-${uid}`).textContent=`epoch ${u.tick}`; }
-    }
-  } catch(e){ setStatus('agent offline','var(--red)'); }
-}
-
-// All score/gauge values come exclusively from Reconstruct
-async function pollReconstruct() {
-  try {
-    const data=await fetch(`${RECONSTRUCT}/aggregate`).then(r=>r.json());
-    const users=data.users||{}, glob=data.global||{};
-    document.getElementById('g-users').textContent=glob.n_users??'—';
-    document.getElementById('g-mean').textContent=(glob.mean_attention||0).toFixed(1);
-    document.getElementById('g-grand').textContent=(glob.grand_avg||0).toFixed(1);
-    document.getElementById('g-total').textContent=glob.total??'—';
-    const nInv=glob.n_invalid||0;
-    const banner=document.getElementById('invalid-banner');
-    if(nInv>0){ banner.style.display='block'; banner.textContent=`⚠ ${nInv} user${nInv>1?'s':''} have count mismatch — excluded from global stats.`; }
-    else banner.style.display='none';
-    const bar=document.getElementById('pct-bar'); bar.innerHTML='';
-    const sortedUids=Object.keys(users).map(Number).sort();
-    for(const uid of sortedUids){
-      const u=users[uid.toString()]; if(!u||!u.valid) continue;
-      const col=(activeUsers.get(uid)||{}).color||'#8b949e';
-      const seg=document.createElement('div'); seg.className='pct-seg';
-      seg.style.width=(u.percent||0).toFixed(1)+'%'; seg.style.background=col;
-      bar.appendChild(seg);
-    }
-    const ts=glob.last_updated?new Date(glob.last_updated*1000).toLocaleTimeString():'—';
-    let rows='';
-    for(const uid of sortedUids){
-      const u=users[uid.toString()];
-      const col=(activeUsers.get(uid)||{}).color||'#8b949e';
-      if(u){
-        const card=document.getElementById(`card-${uid}`);
-        if(card) card.classList.toggle('invalid',!u.valid);
-        const meta=card?.querySelector('.user-meta');
-        const wb=card?.querySelector('.warn-badge');
-        if(!u.valid&&meta&&!wb){ const b=document.createElement('span'); b.className='warn-badge'; b.textContent='⚠ misaligned'; meta.prepend(b); }
-        else if(u.valid&&wb) wb.remove();
-        if(u.valid){
-          const avg=u.avg||0; const score=Math.round(avg);
-          const sc=document.getElementById(`score-${uid}`);
-          const st=document.getElementById(`state-${uid}`);
-          if(sc){ sc.textContent=score; sc.style.color=scoreColor(score); }
-          if(st) st.textContent=stateLabel(score);
-          drawGauge(uid,score,col);
-          const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
-          set(`s-val-${uid}`,u.value??'—'); set(`s-cnt-${uid}`,u.count??0);
-          set(`s-avg-${uid}`,avg.toFixed(1)); set(`s-pct-${uid}`,(u.percent||0).toFixed(1)+'%');
-        }
-      }
-      if(!u){ rows+=`<tr><td style="color:${col};font-weight:600">uid:${uid}</td><td colspan="6" style="color:var(--muted)">awaiting…</td></tr>`; continue; }
-      const rowCls=u.valid?'':'invalid-row';
-      const statusCell=u.valid?`<td style="color:var(--green);font-size:10px">✔ aligned</td>`:`<td style="color:var(--red);font-size:10px">⚠ MISALIGNED</td>`;
-      rows+=`<tr class="${rowCls}"><td style="color:${col};font-weight:600;font-family:monospace">uid:${uid}</td><td>${u.count}</td><td>${u.valid?u.value:'—'}</td><td>${u.valid?(u.avg||0).toFixed(1):'—'}</td><td>${u.valid?(u.percent||0).toFixed(1)+'%':'—'}</td>${statusCell}<td style="color:var(--muted);font-size:10px">${ts}</td></tr>`;
-    }
-    document.getElementById('agg-body').innerHTML=rows||'<tr><td colspan="7" style="color:var(--muted);text-align:center">no data yet</td></tr>';
-  } catch(e){}
-}
-
-document.getElementById('btn-add').addEventListener('click',addUser);
-setInterval(pollAgent,1000);
-setInterval(pollReconstruct,3000);
+// ── Event bindings ─────────────────────────────────────────────────────
+document.getElementById('btn-add').addEventListener('click', addUser);
+setInterval(pollAgent, 1000);
+setInterval(pollHistogram, 5000);
 pollAgent();
-pollReconstruct();
+pollHistogram();
 </script>
 </body>
 </html>

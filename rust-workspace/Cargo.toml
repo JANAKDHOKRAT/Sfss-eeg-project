@@ -5,5 +5,8 @@ members = [
     "helper",
     "agent",
     "reconstruct",
+    "bench",
+    "webcam-agent",    
+
 ]
 resolver = "2"
